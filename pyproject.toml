@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jira-brd-generator"
+version = "1.0.0"
+description = "Generate Jira BRDs and create per-requirement Jira Tasks using MCP."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp",
+    "httpx",
+    "python-dotenv",
+    "google-genai",
+    "openai",
+    "pydantic",
+]
+
+[project.scripts]
+brd-workflow = "start:main"
+
+[tool.setuptools]
+py-modules = ["start"]
+
+[tool.setuptools.packages.find]
+include = ["brd_generation", "brd_retri_parse", "frd_generation"]
+
+[tool.setuptools.package-data]
+brd_generation = ["mcp_clients&llms/*.py", "mcp_server&functions/*.py", "skill.md"]
+brd_retri_parse = ["mcp_clients&llms/*.py", "mcp_server&functions/*.py", "skill.md"]
+frd_generation = ["mcp_clients&llms/*.py", "mcp_server&functions/*.py", "prompts.py"]

@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "jiraKey",
+      "type": "promptString",
+      "description": "Business Vision Jira issue key",
+      "default": "KAN-4"
+    },
+    {
+      "id": "brdProvider",
+      "type": "pickString",
+      "description": "BRD generation provider",
+      "options": ["gemini", "local"],
+      "default": "gemini"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "BRD: Generate and create requirement Tasks",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/start.py",
+        "${input:jiraKey}",
+        "--provider",
+        "${input:brdProvider}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

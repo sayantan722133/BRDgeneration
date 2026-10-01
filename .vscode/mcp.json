@@ -1,0 +1,19 @@
+{
+  "servers": {
+    "jira-brd-generation": {
+      "command": "${command:python.interpreterPath}",
+      "args": ["${workspaceFolder}/brd_generation/mcp_server&functions/customfun.py"],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    "jira-brd-requirements": {
+      "command": "${command:python.interpreterPath}",
+      "args": ["${workspaceFolder}/brd_retri_parse/mcp_server&functions/customfun.py"],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    "jira-frd-context": {
+      "command": "${command:python.interpreterPath}",
+      "args": ["${workspaceFolder}/frd_generation/mcp_server&functions/customfun.py"],
+      "envFile": "${workspaceFolder}/.env"
+    }
+  }
+}

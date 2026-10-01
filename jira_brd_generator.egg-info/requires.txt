@@ -1,0 +1,6 @@
+mcp
+httpx
+python-dotenv
+google-genai
+openai
+pydantic
