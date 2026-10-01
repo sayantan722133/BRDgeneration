@@ -1,8 +1,8 @@
 # Jira BRD Generation, Requirements, and FRD Workflow
 
-Generate and publish a Business Requirements Document from a Jira Business Vision Epic, convert each functional requirement into a Jira Task under that Epic, then generate a Functional Requirements Document (FRD) and publish separate FRD story Tasks under the same Epic. BRD generation supports Google Gemini or a local OpenAI-compatible model; the requirements parser and FRD generator are separate deterministic and LLM-based workflows. Each workflow has its own Jira MCP server.
+Generate and publish a Business Requirements Document from a Jira Business Vision Epic, convert each functional requirement into a Jira Task under that Epic, and continue into a Functional Requirements Document (FRD) for the same initiative. BRD generation supports Google Gemini or a local OpenAI-compatible model; the requirements parser and FRD generator are separate workflows with their own Jira MCP servers.
 
-The generated BRD is saved as a Markdown file in `generated_brds/` and attached directly to the source Business Vision Epic in Jira. The requirements parser then creates one executable Jira Task per functional requirement under that Epic. The FRD flow then reads the Epic, the BRD attachment, and the related BRD requirement tickets as source context, produces a standalone FRD, and creates or updates separated FRD-derived story Tasks with standard `As a... I want... so that...` statements and Given/When/Then acceptance criteria.
+The generated BRD is saved as a Markdown file in `generated_brds/` and attached directly to the source Business Vision Epic in Jira. The requirements parser then creates one executable Jira Task per functional requirement under that Epic, and the FRD flow uses that source context to produce a standalone FRD and the corresponding story outputs.
 
 ## Features
 
@@ -14,7 +14,7 @@ The generated BRD is saved as a Markdown file in `generated_brds/` and attached 
 - Parse the attached BRD into Pydantic module/feature models and create or reuse one Jira Task per FR.
 - Generate a separate FRD from the Epic, BRD attachment, and source requirement tickets.
 - Publish the FRD Markdown as a dedicated FRD Task under the Epic.
-- Create or update distinct FRD user-story Tasks with standard INVEST-style statements and Gherkin acceptance criteria.
+- Create or update separate FRD user-story Tasks in the project’s usual agile format.
 
 ## Requirements
 
@@ -138,7 +138,7 @@ from frd_generation import generate_frd
 frd_markdown = asyncio.run(generate_frd(jira_context, provider="gemini"))
 ```
 
-The FRD uses the BRD attachment and linked issues such as KAN-10–KAN-14 as input. It does not reuse those issues as outputs. The client generates exactly one INVEST-style story per source FR, with an `As a..., I want..., so that...` statement and Given/When/Then acceptance criteria. It creates a distinct `[FRD] Functional Requirements Document` Task under the Business Vision Epic and attaches the complete FRD Markdown. It separately creates new FRD-derived User Story Tasks or updates those outputs in place; BRD input tickets are never reused as outputs. Jira subtasks cannot be direct Epic children, so the project’s Task issue type is used. Select `provider="local"` to use the configured OpenAI-compatible local model.
+The FRD uses the BRD attachment and linked issues such as KAN-10–KAN-14 as input. It does not reuse those issues as outputs. The client creates a distinct `[FRD] Functional Requirements Document` Task under the Business Vision Epic and attaches the complete FRD Markdown. It separately creates or updates FRD-derived user-story Tasks in place, keeping the BRD inputs as source material rather than output work items. Jira subtasks cannot be direct Epic children, so the project’s Task issue type is used. Select `provider="local"` to use the configured OpenAI-compatible local model.
 
 ## Project structure
 
