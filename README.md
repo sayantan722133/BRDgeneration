@@ -1,8 +1,8 @@
-# Jira BRD Generation and Requirements
+# Jira BRD Generation, Requirements, and FRD Workflow
 
-Generate and publish a Business Requirements Document from a Jira Business Vision Epic, then turn each functional requirement into a Jira Task under that Epic. BRD generation supports Google Gemini or a local OpenAI-compatible model; the requirements parser is a separate deterministic workflow. Each workflow has its own Jira MCP server.
+Generate and publish a Business Requirements Document from a Jira Business Vision Epic, convert each functional requirement into a Jira Task under that Epic, then generate a Functional Requirements Document (FRD) and publish separate FRD story Tasks under the same Epic. BRD generation supports Google Gemini or a local OpenAI-compatible model; the requirements parser and FRD generator are separate deterministic and LLM-based workflows. Each workflow has its own Jira MCP server.
 
-The generated BRD is saved as a Markdown file in `generated_brds/` and attached directly to the source Business Vision Epic in Jira. The requirements parser then creates one executable Jira Task per functional requirement under that Epic.
+The generated BRD is saved as a Markdown file in `generated_brds/` and attached directly to the source Business Vision Epic in Jira. The requirements parser then creates one executable Jira Task per functional requirement under that Epic. The FRD flow then reads the Epic, the BRD attachment, and the related BRD requirement tickets as source context, produces a standalone FRD, and creates or updates separated FRD-derived story Tasks with standard `As a... I want... so that...` statements and Given/When/Then acceptance criteria.
 
 ## Features
 
@@ -12,6 +12,9 @@ The generated BRD is saved as a Markdown file in `generated_brds/` and attached 
 - Choose Google Gemini or a local model served through an OpenAI-compatible API.
 - Save BRDs locally and attach them directly to the source Epic.
 - Parse the attached BRD into Pydantic module/feature models and create or reuse one Jira Task per FR.
+- Generate a separate FRD from the Epic, BRD attachment, and source requirement tickets.
+- Publish the FRD Markdown as a dedicated FRD Task under the Epic.
+- Create or update distinct FRD user-story Tasks with standard INVEST-style statements and Gherkin acceptance criteria.
 
 ## Requirements
 
@@ -61,7 +64,7 @@ Use your Jira Cloud site URL without a trailing path, your Atlassian account ema
 
 ## Usage
 
-Run the complete workflow from the repository root. It generates and uploads the BRD first, then fetches it from Jira and creates per-requirement Tasks:
+Run the complete workflow from the repository root. It generates and uploads the BRD, creates the requirement Tasks, then generates the FRD and publishes the FRD/story Tasks under the same Epic:
 
 ```bash
 python start.py KAN-4
@@ -73,9 +76,15 @@ For a local OpenAI-compatible model:
 python start.py KAN-4 --provider local
 ```
 
-The workflow stops if generation or BRD upload fails; the parser is not run until the first stage exits successfully. Each stage can also be run independently.
+The workflow stops if generation or BRD upload fails; the parser is not run until the first stage exits successfully. The FRD stage runs after parsing and is not executed until the BRD and requirement Tasks successfully exist. Each stage can also be run independently.
 
 To run BRD generation only, replace `KAN-4` with the Business Vision issue key.
+
+To run FRD generation only, from the repository root:
+
+```bash
+python "frd_generation/mcp_clients&llms/frd_client.py" KAN-4
+```
 
 **Google Gemini:**
 
