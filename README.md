@@ -177,7 +177,9 @@ The FRD uses the BRD attachment and linked issues such as KAN-10–KAN-14 as inp
 │       ├── customfun.py        # Independent Jira MCP configuration/tools
 │       ├── jira_fetch.py       # Jira issue, BRD, and related-work retrieval
 │       └── jira_publish.py     # FRD Task and Markdown attachment publishing
-└── generated_brds/             # Generated BRD Markdown files
+├── generated_brds/             # Generated BRD Markdown files
+├── generated_frds/             # Generated FRD Markdown files
+└── .env                        # Local secrets file; keep out of Git
 ```
 
 ## Troubleshooting
