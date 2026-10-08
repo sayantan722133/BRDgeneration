@@ -14,7 +14,7 @@ The generated BRD is saved as a Markdown file in `generated_brds/` and attached 
 - Parse the attached BRD into Pydantic module/feature models and create or reuse one Jira Task per FR.
 - Generate a separate FRD from the Epic, BRD attachment, and source requirement tickets.
 - Publish the FRD Markdown as a dedicated FRD Task under the Epic.
-- Create or update separate FRD user-story Tasks in the project’s usual agile format.
+- Create or update FRD user-story subtasks beneath the FRD document Task.
 
 ## Requirements
 
@@ -64,7 +64,7 @@ Use your Jira Cloud site URL without a trailing path, your Atlassian account ema
 
 ## Usage
 
-Run the complete workflow from the repository root. It generates and uploads the BRD, creates the requirement Tasks, then generates the FRD and publishes the FRD/story Tasks under the same Epic:
+Run the complete workflow from the repository root. It generates and publishes the BRD, creates requirement Tasks under the Epic, then creates an FRD document Task with story subtasks and an architecture document Task with component subtasks:
 
 ```bash
 python start.py KAN-4
@@ -76,7 +76,9 @@ For a local OpenAI-compatible model:
 python start.py KAN-4 --provider local
 ```
 
-The workflow stops if generation or BRD upload fails; the parser is not run until the first stage exits successfully. The FRD stage runs after parsing and is not executed until the BRD and requirement Tasks successfully exist. Each stage can also be run independently.
+The workflow runs in order and stops as soon as any stage fails. Architecture generation starts only after the BRD, requirement Tasks, and FRD publication succeed. Each stage can also be run independently.
+
+Rerunning the workflow updates requirement, story, and component issues in place using their FR/module labels. Local documents and Jira attachments use stable per-Epic filenames; older generated attachments are removed after the replacement upload succeeds. Repeated BRD audit comments are not added again.
 
 To run BRD generation only, replace `KAN-4` with the Business Vision issue key.
 
@@ -84,6 +86,12 @@ To run FRD generation only, from the repository root:
 
 ```bash
 python "frd_generation/mcp_clients&llms/frd_client.py" KAN-4
+```
+
+To run architecture generation only, from the repository root:
+
+```bash
+python "arch_generation/mcp_clients&llms/arch_client.py" KAN-4
 ```
 
 **Google Gemini:**
@@ -138,13 +146,15 @@ from frd_generation import generate_frd
 frd_markdown = asyncio.run(generate_frd(jira_context, provider="gemini"))
 ```
 
-The FRD uses the BRD attachment and linked issues such as KAN-10–KAN-14 as input. It does not reuse those issues as outputs. The client creates a distinct `[FRD] Functional Requirements Document` Task under the Business Vision Epic and attaches the complete FRD Markdown. It separately creates or updates FRD-derived user-story Tasks in place, keeping the BRD inputs as source material rather than output work items. Jira subtasks cannot be direct Epic children, so the project’s Task issue type is used. Select `provider="local"` to use the configured OpenAI-compatible local model.
+The FRD uses the BRD attachment and linked issues such as KAN-10–KAN-14 as input. It does not reuse those issues as outputs. The client creates or reuses a `[FRD] Functional Requirements Document` Task under the Business Vision Epic, attaches the complete FRD Markdown, and creates or updates one Jira subtask per user story beneath that FRD Task. Select `provider="local"` to use the configured OpenAI-compatible local model.
+
+On reruns, previously generated story or component Tasks that still sit directly under the Epic are reused to avoid duplicates and are listed in the publisher result. Jira does not expose issue-type conversion through the normal edit operation, so move these legacy Tasks to their document Tasks once in Jira to make their hierarchy match newly generated subtasks.
 
 ## Project structure
 
 ```text
 .
-├── start.py                   # Sequential BRD generation and requirement parsing
+├── start.py                   # Sequential BRD-to-architecture workflow
 ├── pyproject.toml              # Dependencies and package metadata
 ├── .vscode/
 │   ├── mcp.json                # Jira MCP servers
@@ -169,16 +179,23 @@ The FRD uses the BRD attachment and linked issues such as KAN-10–KAN-14 as inp
 │   │   └── customfun.py        # Shared helpers and MCP tool registration
 │   └── skill.md                # Parser workflow guidance
 ├── frd_generation/
-│   ├── frd_agent.py            # Async LLM-backed FRD generation function
 │   ├── prompts.py              # FRD structure and grounding instructions
 │   ├── mcp_clients&llms/
-│   │   └── frd_client.py       # Jira context collection and FRD publishing
+│   │   ├── frd_client.py       # Jira context collection and FRD publishing
+│   │   └── frd_agent.py        # Async LLM-backed FRD generation function
 │   └── mcp_server&functions/
 │       ├── customfun.py        # Independent Jira MCP configuration/tools
 │       ├── jira_fetch.py       # Jira issue, BRD, and related-work retrieval
 │       └── jira_publish.py     # FRD Task and Markdown attachment publishing
+├── arch_generation/
+│   ├── prompts.py              # Architecture structure and grounding instructions
+│   ├── mcp_clients&llms/
+│   │   ├── arch_client.py      # Jira context collection and architecture publishing
+│   │   └── arch_agent.py       # Gemini and local-model architecture generation
+│   └── mcp_server&functions/   # Architecture context and Jira publishing tools
 ├── generated_brds/             # Generated BRD Markdown files
 ├── generated_frds/             # Generated FRD Markdown files
+├── generated_arch/             # Generated architecture Markdown files
 └── .env                        # Local secrets file; keep out of Git
 ```
 

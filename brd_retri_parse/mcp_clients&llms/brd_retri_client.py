@@ -1,4 +1,4 @@
-"""Parse BRD functional requirements and publish them as a Jira subtask."""
+"""Parse BRD functional requirements and publish them as Jira Tasks."""
 
 import argparse
 import asyncio
@@ -103,7 +103,7 @@ async def run(jira_key: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Parse BRD requirements and create a Jira subtask.")
+    parser = argparse.ArgumentParser(description="Parse BRD requirements and create one Jira Task per requirement.")
     parser.add_argument("jira_key", help="Source Jira issue key, for example KAN-4")
     args = parser.parse_args()
     source_key = args.jira_key.strip().upper()

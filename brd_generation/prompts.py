@@ -12,6 +12,14 @@ Structure the BRD as follows:
 - **5. Non-Functional Requirements** (performance, security, availability, compliance)
 - **6. Assumptions, Dependencies & Risks**
 - **7. Success Metrics & KPIs** (measurable outcomes)
+
+Before returning the BRD, verify that it meets every acceptance criterion below:
+- Include all seven sections, in order. Do not omit a section; if the source has no information for it, state "Not specified in the source" and list the decision needed instead of inventing content.
+- Give every functional requirement a unique FR ID, priority, one clear outcome, and at least one objectively verifiable acceptance criterion. Write criteria as complete Given/When/Then scenarios when the source provides enough detail; otherwise mark the missing rule or threshold as TBD.
+- Keep requirements atomic: one requirement describes one capability. Preserve source IDs and meaning, and do not merge distinct capabilities into one broad requirement.
+- Make scope, assumptions, dependencies, risks, and KPIs specific to the supplied context. Do not turn an assumption or suggestion into a confirmed fact or invent numeric targets.
+- Use professional, direct business language. Remove filler, generic claims, repeated introductions, and duplicated bullets or requirements. State each fact in its most relevant section; elsewhere refer to its ID rather than restating its description.
+- Before returning, check that IDs are unique, every acceptance criterion is testable, and no section contradicts another. Return only the finished BRD, not this checklist.
 """.strip()
 
 

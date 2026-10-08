@@ -24,9 +24,10 @@ brd-workflow = "start:main"
 py-modules = ["start"]
 
 [tool.setuptools.packages.find]
-include = ["brd_generation", "brd_retri_parse", "frd_generation"]
+include = ["brd_generation", "brd_retri_parse", "frd_generation", "arch_generation"]
 
 [tool.setuptools.package-data]
 brd_generation = ["mcp_clients&llms/*.py", "mcp_server&functions/*.py", "skill.md"]
 brd_retri_parse = ["mcp_clients&llms/*.py", "mcp_server&functions/*.py", "skill.md"]
 frd_generation = ["mcp_clients&llms/*.py", "mcp_server&functions/*.py", "prompts.py"]
+arch_generation = ["mcp_clients&llms/*.py", "mcp_server&functions/*.py", "prompts.py", "skill.md"]

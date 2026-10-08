@@ -151,8 +151,14 @@ async def run(
             continue
         labels = [str(label).casefold() for label in item.get("labels", [])]
         if any(
-            label in {"frd-output-document", "frd-output-story"}
-            or label.startswith("frd-story-")
+            label in {
+                "frd-document",
+                "frd-output-document",
+                "frd-output-story",
+                "arch-output-document",
+                "arch-output-component",
+            }
+            or label.startswith(("frd-story-", "arch-comp-"))
             for label in labels
         ):
             continue

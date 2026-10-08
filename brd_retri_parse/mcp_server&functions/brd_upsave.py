@@ -1,4 +1,4 @@
-"""Create one Jira execution ticket for every parsed BRD feature."""
+"""Create or update one Jira execution ticket for every parsed BRD feature."""
 
 import json
 import re
@@ -96,34 +96,6 @@ async def create_brd_requirement_issues(
                     continue
 
                 requirement_label = _jira_label(f"brd-{requirement_id}")
-                duplicate_response = await client.get(
-                    f"{JIRA_BASE_URL}/rest/api/3/search/jql",
-                    params={
-                        "jql": f'parent = "{epic_key}" AND labels = "{requirement_label}"',
-                        "maxResults": 1,
-                        "fields": "summary",
-                    },
-                    headers=get_jira_headers(),
-                )
-                if duplicate_response.status_code != 200:
-                    errors.append({
-                        "requirement_id": requirement_id,
-                        "error": f"Duplicate check failed: {duplicate_response.status_code}",
-                    })
-                    continue
-
-                existing = duplicate_response.json().get("issues", [])
-                if existing:
-                    issue = existing[0]
-                    results.append({
-                        "requirement_id": requirement_id,
-                        "module_id": module_id,
-                        "issue_key": issue.get("key"),
-                        "summary": issue.get("fields", {}).get("summary"),
-                        "created": False,
-                    })
-                    continue
-
                 acceptance_criteria = feature.get("acceptance_criteria", [])
                 description_content = [
                     _adf_paragraph(f"Business Vision: {epic_key}"),
@@ -145,6 +117,56 @@ async def create_brd_requirement_issues(
                     })
 
                 summary = f"[{requirement_id}] {feature_name}"[:255]
+                issue_fields = {
+                    "summary": summary,
+                    "description": {
+                        "type": "doc",
+                        "version": 1,
+                        "content": description_content,
+                    },
+                    "labels": ["brd-requirement", requirement_label, module_label],
+                }
+                duplicate_response = await client.get(
+                    f"{JIRA_BASE_URL}/rest/api/3/search/jql",
+                    params={
+                        "jql": f'parent = "{epic_key}" AND labels = "{requirement_label}"',
+                        "maxResults": 1,
+                        "fields": "summary",
+                    },
+                    headers=get_jira_headers(),
+                )
+                if duplicate_response.status_code != 200:
+                    errors.append({
+                        "requirement_id": requirement_id,
+                        "error": f"Duplicate check failed: {duplicate_response.status_code}",
+                    })
+                    continue
+
+                existing = duplicate_response.json().get("issues", [])
+                if existing:
+                    issue = existing[0]
+                    issue_key = issue.get("key")
+                    update_response = await client.put(
+                        f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}",
+                        headers=get_jira_headers(),
+                        json={"fields": issue_fields},
+                    )
+                    if update_response.status_code not in (200, 204):
+                        errors.append({
+                            "requirement_id": requirement_id,
+                            "error": f"Ticket update failed: {update_response.status_code} {update_response.text}",
+                        })
+                        continue
+                    results.append({
+                        "requirement_id": requirement_id,
+                        "module_id": module_id,
+                        "issue_key": issue_key,
+                        "summary": summary,
+                        "created": False,
+                        "updated": True,
+                    })
+                    continue
+
                 create_response = await client.post(
                     f"{JIRA_BASE_URL}/rest/api/3/issue",
                     headers=get_jira_headers(),
@@ -152,13 +174,7 @@ async def create_brd_requirement_issues(
                         "project": {"key": project_key},
                         "parent": {"key": epic_key},
                         "issuetype": {"id": ticket_type["id"]},
-                        "summary": summary,
-                        "description": {
-                            "type": "doc",
-                            "version": 1,
-                            "content": description_content,
-                        },
-                        "labels": ["brd-requirement", requirement_label, module_label],
+                        **issue_fields,
                     }},
                 )
                 if create_response.status_code not in (200, 201):
@@ -174,6 +190,28 @@ async def create_brd_requirement_issues(
                     "issue_key": create_response.json().get("key"),
                     "summary": summary,
                     "created": True,
+                })
+
+        requirement_issues = sorted(
+            (
+                result for result in results
+                if result.get("issue_key") and result.get("requirement_id")
+            ),
+            key=lambda result: int(str(result["requirement_id"]).split("-")[-1]),
+        )
+        for previous, current in zip(requirement_issues, requirement_issues[1:]):
+            rank_response = await client.put(
+                f"{JIRA_BASE_URL}/rest/agile/1.0/issue/rank",
+                headers=get_jira_headers(),
+                json={
+                    "issues": [str(current["issue_key"])],
+                    "rankAfterIssue": str(previous["issue_key"]),
+                },
+            )
+            if rank_response.status_code != 204:
+                errors.append({
+                    "requirement_id": current["requirement_id"],
+                    "error": f"Requirement task ranking failed: {rank_response.status_code} {rank_response.text}",
                 })
 
     return json.dumps({

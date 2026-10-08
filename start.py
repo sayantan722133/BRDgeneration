@@ -1,4 +1,4 @@
-"""Run BRD generation, requirement parsing, and FRD publication for a Jira Epic."""
+"""Run the complete BRD-to-architecture workflow for a Jira Epic."""
 
 import argparse
 import subprocess
@@ -9,6 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 BRD_CLIENT = PROJECT_ROOT / "brd_generation" / "mcp_clients&llms" / "brd_client.py"
 REQUIREMENTS_CLIENT = PROJECT_ROOT / "brd_retri_parse" / "mcp_clients&llms" / "brd_retri_client.py"
 FRD_CLIENT = PROJECT_ROOT / "frd_generation" / "mcp_clients&llms" / "frd_client.py"
+ARCH_CLIENT = PROJECT_ROOT / "arch_generation" / "mcp_clients&llms" / "arch_client.py"
 
 
 def run_step(name: str, command: list[str]) -> int:
@@ -21,7 +22,10 @@ def run_step(name: str, command: list[str]) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate a Jira BRD, create requirement Tasks, then create the FRD and FRD story Tasks."
+        description=(
+            "Generate and publish a Jira BRD, create requirement Tasks, then generate "
+            "the FRD and system architecture with their Jira tasks."
+        )
     )
     parser.add_argument("jira_key", help="Business Vision Jira issue key, for example KAN-4")
     parser.add_argument(
@@ -63,7 +67,18 @@ def main() -> None:
     if result:
         raise SystemExit(result)
 
-    print("\nEnd-to-end BRD-to-FRD workflow completed.")
+    arch_command = [
+        sys.executable,
+        str(ARCH_CLIENT),
+        args.jira_key,
+        "--provider",
+        args.provider,
+    ]
+    result = run_step("Architecture generation and Jira publication", arch_command)
+    if result:
+        raise SystemExit(result)
+
+    print("\nEnd-to-end BRD-to-architecture workflow completed.")
 
 
 if __name__ == "__main__":

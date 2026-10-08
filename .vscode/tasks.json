@@ -17,7 +17,7 @@
   ],
   "tasks": [
     {
-      "label": "BRD: Generate and create requirement Tasks",
+      "label": "Jira: Generate BRD, FRD, and Architecture",
       "type": "process",
       "command": "${command:python.interpreterPath}",
       "args": [

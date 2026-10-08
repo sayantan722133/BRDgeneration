@@ -18,6 +18,14 @@ Return one JSON object matching the supplied response schema, with `frd_markdown
 10. Assumptions, open questions, and decisions required
 
 Create exactly one user story for each unique source FR, using the Epic plus KAN-10–KAN-14-style linked BRD input issues as context. These source issues are inputs only: do not return their keys as output story IDs and do not copy their summaries without analysis. Each story must include its source requirement ID, module ID, source Jira input keys, a short action-oriented title, priority, and a complete statement in the format `As a [specific persona], I want [capability], so that [business value].` Each story must have 3-7 independently testable acceptance scenarios written as complete Given/When/Then criteria, plus explicit assumptions/open questions where the source is incomplete. Follow INVEST: independent, negotiable, valuable, estimable, small, and testable. Keep the original source acceptance criteria traceable and do not weaken them. If a persona or value is not supported, mark it Proposed or TBD rather than asserting it as fact.
+
+Before returning the JSON, perform this document-quality acceptance review:
+- Confirm all ten FRD sections are present and contain project-specific information. Do not replace required sections with a short summary or omit sections; use Proposed/TBD plus the decision needed when source material is insufficient.
+- Make every use case, workflow, entity, interface, constraint, and decision traceable to a source FR or explicitly label it Proposed/TBD. Do not invent endpoint paths, data fields, roles, regulations, or numeric service levels.
+- Ensure each source FR appears exactly once in the traceability matrix and has exactly one corresponding user story. Keep story IDs unique and consistent with the schema.
+- Keep the Markdown FRD and structured stories consistent. Acceptance scenarios must be observable and independently testable; avoid vague results such as "works correctly" or "is user-friendly".
+- Edit for professional, concise language. Remove duplicate headings, repeated sentences, boilerplate, and duplicated facts across sections. Use cross-references to FR/story IDs instead of copying descriptions into multiple sections; repetition of an ID in the traceability matrix is allowed.
+- Check that no story weakens or contradicts its source requirement, every incomplete source decision is surfaced as an open question, and the result is valid JSON matching the response schema. Return only the JSON object, not this checklist.
 """.strip()
 
 

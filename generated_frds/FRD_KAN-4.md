@@ -1,36 +1,40 @@
 # Functional Requirements Document: Simple Pension Scheme Setup Platform
 
 ## 1. Purpose and Scope
-This document defines the functional requirements for the Simple Pension Scheme Setup Platform (KAN-4). The scope includes digitizing employer onboarding, contribution management, member self-service, and automated benefit disbursements.
+This document defines the functional requirements for the Simple Pension Scheme Setup Platform (KAN-4). The scope includes digitizing employer/member onboarding, contribution management, investment tracking, benefit payments, and regulatory audit logging.
 
 ## 2. System Context
-- **Actors:** Scheme Administrators, Employers/HR Managers, Scheme Members, Regulators/Auditors.
-- **External Systems:** Third-party Banking APIs (Direct Debit), Payroll Software Providers (Dependency).
-- **Trust Boundaries:** All financial transactions and PII must comply with local financial authority regulations.
+- **Actors:** Scheme Administrators, Employers/HR Managers, Individual Scheme Members, Regulators/Auditors.
+- **External Systems:** Third-party banking APIs (for direct debit).
+- **Trust Boundaries:** The system must enforce strict data privacy and security per local financial authority regulations.
 
 ## 3. Use Case Index
-- UC-1: Employer Digital Onboarding (FR-1)
-- UC-2: Automated Contribution Processing (FR-2)
-- UC-3: Member Portal Access (FR-3)
-- UC-4: Automated Benefit Disbursement (FR-4)
+- UC-1: Employer/Member Onboarding (FR-1)
+- UC-2: Contribution Processing (FR-2)
+- UC-3: Investment Management (FR-3)
+- UC-4: Benefit Disbursement (FR-4)
+- UC-5: Audit Logging (FR-5, FR-6)
 
 ## 4. Functional Behavior
-- **MOD-ONBOARDING:** Digital KYC and scheme setup.
-- **MOD-CONTRIBUTIONS:** Automated salary deduction and billing via banking API.
-- **MOD-MEMBER-EXPERIENCE:** Real-time contribution and performance tracking.
-- **MOD-BENEFITS:** Automated calculation and disbursement of benefits.
+- **MOD-ONBOARDING:** Validates KYC documentation and triggers approval workflows.
+- **MOD-CONTRIBUTIONS:** Automates billing and reconciliation via banking integration.
+- **MOD-INVESTMENTS:** Provides self-service portal for fund allocation and switching.
+- **MOD-BENEFITS:** Calculates eligibility and automates payments.
+- **MOD-COMPLIANCE:** Generates immutable audit logs for all transactions.
 
-## 5. Data Dictionary (Proposed)
-- **EmployerProfile:** {OrgID, Name, KYCStatus, SchemeDetails}
-- **ContributionRecord:** {MemberID, Amount, Date, Status}
-- **BenefitCalculation:** {MemberID, EligibilityDate, Amount, AuditTrailID}
+## 5. Data Dictionary
+- **Employer/Member Profile:** (Proposed) Name, ID, KYC Status, Contact Info.
+- **Contribution Record:** (Proposed) Amount, Date, Source, Status.
+- **Audit Log:** (Proposed) Timestamp, Actor, Action, System State.
 
 ## 6. Traceability Matrix
 - FR-1: KAN-10
 - FR-2: KAN-11
 - FR-3: KAN-12
 - FR-4: KAN-13
+- FR-5: KAN-25
+- FR-6: KAN-26
 
 ## 7. Assumptions & Open Questions
-- **Assumptions:** Banking APIs are stable; Payroll integration is required.
-- **Open Questions:** Specific KYC document requirements; Benefit calculation rule definitions.
+- **Assumptions:** Third-party banking APIs support direct debit.
+- **Open Questions:** TBD: Legacy data migration strategy, multi-currency support, performance thresholds, and availability requirements.

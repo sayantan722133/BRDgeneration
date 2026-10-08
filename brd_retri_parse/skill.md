@@ -1,6 +1,6 @@
 ---
 name: brd-requirements-parser
-description: "Use when maintaining BRD requirement parsing, Pydantic models, Jira attachment retrieval, or requirements subtask publishing."
+description: "Use when maintaining BRD requirement parsing, Pydantic models, Jira attachment retrieval, or requirement Task creation."
 ---
 
 # BRD Requirements Parser
