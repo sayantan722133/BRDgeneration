@@ -341,6 +341,11 @@ def _synchronize_schema_markdown(markdown: str, entities: list[ErdEntity]) -> st
         }
         for entity in entities
     }
+    related_tables: dict[str, set[str]] = {entity.table_name: set() for entity in entities}
+    for source, target in relationship_labels:
+        related_tables[source].add(target)
+        related_tables[target].add(source)
+
     relationships = []
     for child in entities:
         for attribute in child.attributes:
@@ -352,10 +357,13 @@ def _synchronize_schema_markdown(markdown: str, entities: list[ErdEntity]) -> st
                 if parent.table_name != child.table_name
                 and attribute.name in primary_keys[parent.table_name]
             ]
+            if not parents:
+                parents = sorted(related_tables[child.table_name])
             if len(parents) != 1:
                 raise ValueError(
-                    f"Foreign key {child.table_name}.{attribute.name} must match "
-                    "the primary key of exactly one other table."
+                    f"Foreign key {child.table_name}.{attribute.name} must identify exactly "
+                    "one parent, either by matching a primary-key column or by an unambiguous "
+                    "relationship in the Mermaid diagram."
                 )
             parent_name = parents[0]
             label = (
@@ -604,6 +612,17 @@ def _validate_mermaid_relationships(
         }
         for entity in entities
     }
+    entity_names = {entity.table_name.casefold(): entity.table_name for entity in entities}
+    relationship_rows = _parse_mermaid_relationships(markdown)
+    related_tables: dict[str, set[str]] = {entity.table_name: set() for entity in entities}
+    for source, _, _, target, _ in relationship_rows:
+        source_name = entity_names.get(source.casefold())
+        target_name = entity_names.get(target.casefold())
+        if not source_name or not target_name:
+            raise ValueError(f"Mermaid relationship references unknown entity: {source} -> {target}.")
+        related_tables[source_name].add(target_name)
+        related_tables[target_name].add(source_name)
+
     foreign_key_pairs: set[tuple[str, str]] = set()
     for entity in entities:
         for attribute in entity.attributes:
@@ -614,16 +633,18 @@ def _validate_mermaid_relationships(
                 for table_name, columns in primary_keys.items()
                 if table_name != entity.table_name and attribute.name in columns
             ]
+            if not targets:
+                targets = sorted(related_tables[entity.table_name])
             if len(targets) != 1:
                 raise ValueError(
-                    f"Foreign key {entity.table_name}.{attribute.name} must match "
-                    "the primary key of exactly one other table."
+                    f"Foreign key {entity.table_name}.{attribute.name} must identify exactly "
+                    "one parent, either by matching a primary-key column or by an unambiguous "
+                    "Mermaid relationship."
                 )
             foreign_key_pairs.add((entity.table_name, targets[0]))
 
-    entity_names = {entity.table_name.casefold(): entity.table_name for entity in entities}
     relationship_pairs: set[frozenset[str]] = set()
-    for source, source_card, target_card, target, _ in _parse_mermaid_relationships(markdown):
+    for source, source_card, target_card, target, _ in relationship_rows:
         source_name = entity_names.get(source.casefold())
         target_name = entity_names.get(target.casefold())
         if not source_name or not target_name:

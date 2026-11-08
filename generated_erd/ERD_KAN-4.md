@@ -1,65 +1,67 @@
 # Database Architecture Summary & Scope
-The Simple Pension Scheme Setup Platform utilizes a modular monolith architecture. The schema is designed to support core pension lifecycle management, including member onboarding, contribution processing, investment tracking, benefit disbursement, and regulatory compliance. The target database engine is Proposed (TBD). All entities are derived from the system architecture components and functional requirements. Relationships are modeled based on business logic defined in the FRD.
+The Simple Pension Scheme Setup Platform utilizes a modular monolith architecture. The database schema is designed to support core functional domains: Onboarding, Contributions, Investments, Benefits, and Compliance. The target database engine is currently Proposed (TBD) as the system is in the design phase. All constraints are derived from the FRD and architecture components.
 
 ## Mermaid.js Entity Relationship Diagram
 ```mermaid
 erDiagram
-  Member {
-    VARCHAR(36) member_id PK "member id"
-    TEXT status "status"
+  account {
+    VARCHAR(36) account_id PK "account id"
+    VARCHAR(20) status "status"
   }
-  Contribution {
+  contribution {
     VARCHAR(36) contribution_id PK "contribution id"
-    VARCHAR(36) member_id FK "member id"
+    VARCHAR(36) account_id FK "account id"
     NUMERIC(18,2) amount "amount"
   }
-  Investment {
+  investment {
     VARCHAR(36) investment_id PK "investment id"
-    VARCHAR(36) member_id FK "member id"
-    TEXT fund_id "fund id"
+    VARCHAR(36) account_id FK "account id"
+    VARCHAR(50) fund_id "fund id"
   }
-  Benefit {
-    VARCHAR(36) benefit_id PK "benefit id"
-    VARCHAR(36) member_id FK "member id"
-    NUMERIC(18,2) calculation "calculation"
+  payment {
+    VARCHAR(36) payment_id PK "payment id"
+    VARCHAR(36) account_id FK "account id"
+    NUMERIC(18,2) amount "amount"
   }
-  AuditLog {
-    VARCHAR(36) event_id PK "event id"
-    TEXT event_details "event details"
+  audit_log {
+    VARCHAR(36) log_id PK "log id"
+    TEXT entry "entry"
+    TIMESTAMP created_at "created at"
   }
-  Member ||--o{ Contribution : "makes"
-  Member ||--o{ Investment : "holds"
-  Member ||--o{ Benefit : "receives"
+  account ||--o{ contribution : "makes"
+  account ||--o{ investment : "holds"
+  account ||--o{ payment : "receives"
 ```
 
 ## Data Dictionary / Table Definitions
 | Table | Column | Data Type | Constraints | Description |
 |---|---|---|---|---|
-| Member | member_id | VARCHAR(36) | PK | Unique identifier for the member |
-| Member | status | TEXT |  | Current onboarding status |
-| Contribution | contribution_id | VARCHAR(36) | PK | Unique identifier for the contribution |
-| Contribution | member_id | VARCHAR(36) | FK | Reference to the owning member |
-| Contribution | amount | NUMERIC(18,2) |  | Contribution amount value |
-| Investment | investment_id | VARCHAR(36) | PK | Unique identifier for the investment |
-| Investment | member_id | VARCHAR(36) | FK | Reference to the owning member |
-| Investment | fund_id | TEXT |  | Identifier for the selected fund |
-| Benefit | benefit_id | VARCHAR(36) | PK | Unique identifier for the benefit record |
-| Benefit | member_id | VARCHAR(36) | FK | Reference to the owning member |
-| Benefit | calculation | NUMERIC(18,2) |  | Calculated benefit payment amount |
-| AuditLog | event_id | VARCHAR(36) | PK | Unique identifier for the audit event |
-| AuditLog | event_details | TEXT |  | Immutable description of the system event |
+| account | account_id | VARCHAR(36) | PK | Unique identifier for the account |
+| account | status | VARCHAR(20) |  | Current status of the account |
+| contribution | contribution_id | VARCHAR(36) | PK | Unique identifier for the contribution |
+| contribution | account_id | VARCHAR(36) | FK | Reference to the owning account |
+| contribution | amount | NUMERIC(18,2) |  | Monetary value of the contribution |
+| investment | investment_id | VARCHAR(36) | PK | Unique identifier for the investment |
+| investment | account_id | VARCHAR(36) | FK | Reference to the owning account |
+| investment | fund_id | VARCHAR(50) |  | Identifier for the selected fund |
+| payment | payment_id | VARCHAR(36) | PK | Unique identifier for the payment |
+| payment | account_id | VARCHAR(36) | FK | Reference to the receiving account |
+| payment | amount | NUMERIC(18,2) |  | Monetary value of the payment |
+| audit_log | log_id | VARCHAR(36) | PK | Unique identifier for the log entry |
+| audit_log | entry | TEXT |  | Immutable transaction log details |
+| audit_log | created_at | TIMESTAMP |  | Timestamp of the log creation |
 
 ## Relationship & Cardinality Mapping
-- Member to Contribution (Proposed 1:N): The child foreign key references the parent primary key. A member can have multiple contribution records over time. Implemented via `member_id` FK in Contribution. Confirm optionality and any uniqueness rule. The source does not establish cardinality or optionality; confirm these rules.
-- Member to Investment (Proposed 1:N): The child foreign key references the parent primary key. A member can hold multiple investment allocations. Implemented via `member_id` FK in Investment. Confirm optionality and any uniqueness rule. The source does not establish cardinality or optionality; confirm these rules.
-- Member to Benefit (Proposed 1:N): The child foreign key references the parent primary key. A member can receive multiple benefit payments. Implemented via `member_id` FK in Benefit. Confirm optionality and any uniqueness rule. The source does not establish cardinality or optionality; confirm these rules.
-- Unresolved reference columns: `Investment.fund_id` are not declared foreign keys because their target entities are not established by the source. Confirm their target and key before implementation.
+- account to contribution (Proposed 1:N): The child foreign key references the parent primary key. ** An account can have multiple contributions over time. Implemented via `contribution.account_id` FK. Confirm optionality and any uniqueness rule. The source does not establish cardinality or optionality; confirm these rules.
+- account to investment (Proposed 1:N): The child foreign key references the parent primary key. ** An account can hold multiple investment allocations. Implemented via `investment.account_id` FK. Confirm optionality and any uniqueness rule. The source does not establish cardinality or optionality; confirm these rules.
+- account to payment (Proposed 1:N): The child foreign key references the parent primary key. ** An account can receive multiple benefit payments. Implemented via `payment.account_id` FK. Confirm optionality and any uniqueness rule. The source does not establish cardinality or optionality; confirm these rules.
+- Unresolved reference columns: `investment.fund_id` are not declared foreign keys because their target entities are not established by the source. Confirm their target and key before implementation.
 
 ## Traceability Matrix
 | Table Name | Source Component ID | Source Data Entity |
 |---|---|---|
-| Member | COMP-ONBOARDING-1 | Member |
-| Contribution | COMP-CONTRIBUTIONS-1 | Contribution |
-| Investment | COMP-INVESTMENTS-1 | Investment |
-| Benefit | COMP-BENEFITS-1 | Benefit |
-| AuditLog | COMP-COMPLIANCE-1 | AuditLog |
+| account | COMP-ONBOARDING-1 | Account |
+| contribution | COMP-CONTRIBUTIONS-1 | Contribution |
+| investment | COMP-INVESTMENTS-1 | Investment |
+| payment | COMP-BENEFITS-1 | Payment |
+| audit_log | COMP-COMPLIANCE-1 | AuditLog |

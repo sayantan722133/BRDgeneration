@@ -64,9 +64,11 @@ Database-document acceptance review:
   in the child table that references the parent's primary key. Every FK must
   have a matching relationship edge. Do not draw conceptual edges that have no
   declared FK; model polymorphic or unresolved references as ordinary reference
-  columns, not foreign keys, and explain the limitation instead. An FK column
-  must use the exact referenced primary-key column name so the target is
-  unambiguous. Never create an FK to an entity or key that is not declared.
+  columns, not foreign keys, and explain the limitation instead. A Mermaid edge
+  identifies the FK's parent table; FK column names may follow the child table's
+  naming convention and need not equal the referenced PK column name. Every
+  FK must still point to exactly one declared parent PK, and multiple possible
+  parents must be resolved explicitly rather than guessed.
 - Default an FK-backed relationship to 1:N unless a source-backed uniqueness
   rule establishes 1:1. Never claim one-to-one merely because one business
   event is expected to create one record. Do not claim M:N without the required

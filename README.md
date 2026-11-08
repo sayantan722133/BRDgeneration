@@ -65,7 +65,7 @@ Use your Jira Cloud site URL without a trailing path, your Atlassian account ema
 
 ## Usage
 
-Run the complete workflow from the repository root. It generates and publishes the BRD, creates requirement Tasks under the Epic, then creates an FRD document Task with story subtasks and an architecture document Task with component subtasks:
+Run the complete workflow from the repository root. It generates and publishes the BRD, creates requirement Tasks under the Epic, then creates the FRD and architecture documents with their Jira tasks, followed by the ERD and database-entity tasks:
 
 ```bash
 python start.py KAN-4
@@ -77,7 +77,7 @@ For a local OpenAI-compatible model:
 python start.py KAN-4 --provider local
 ```
 
-The workflow runs in order and stops as soon as any stage fails. Architecture generation starts only after the BRD, requirement Tasks, and FRD publication succeed. Each stage can also be run independently.
+The workflow runs in order and stops as soon as any stage fails. ERD generation starts only after the BRD, requirement Tasks, FRD, and architecture publication succeed. Each stage can also be run independently.
 
 Rerunning the workflow updates requirement, story, and component issues in place using their FR/module labels. Local documents and Jira attachments use stable per-Epic filenames; older generated attachments are removed after the replacement upload succeeds. Repeated BRD audit comments are not added again.
 
