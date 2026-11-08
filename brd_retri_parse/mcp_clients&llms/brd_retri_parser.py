@@ -1,5 +1,6 @@
 """Pydantic schema and deterministic parser for BRD functional requirements."""
 
+from collections import Counter
 import re
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -84,7 +85,10 @@ def parse_brd_requirements(
         indexes = {
             "id": next((index for index, cell in enumerate(header) if cell in {"id", "requirement id"}), None),
             "priority": next((index for index, cell in enumerate(header) if "priority" in cell), None),
-            "description": next((index for index, cell in enumerate(header) if "description" in cell or "requirement" in cell), None),
+            "description": next((
+                index for index, cell in enumerate(header)
+                if cell in {"description", "outcome", "requirement", "requirement description"}
+            ), None),
             "acceptance": next((index for index, cell in enumerate(header) if "acceptance" in cell), None),
         }
         if any(index is None or index >= len(cells) for index in indexes.values()):
@@ -100,6 +104,21 @@ def parse_brd_requirements(
 
     if not rows:
         raise ValueError("No functional requirement rows were found in the BRD Markdown table.")
+
+    canonical_ids = [
+        f"FR-{int(requirement_id.split('-', maxsplit=1)[1])}"
+        for requirement_id, _, _, _ in rows
+    ]
+    duplicates = sorted(
+        requirement_id
+        for requirement_id, count in Counter(canonical_ids).items()
+        if count > 1
+    )
+    if duplicates:
+        raise ValueError(
+            "BRD contains duplicate functional requirement IDs: "
+            + ", ".join(duplicates)
+        )
 
     feature_groups: dict[str, list[RequirementFeature]] = {}
     module_names: dict[str, str] = {}

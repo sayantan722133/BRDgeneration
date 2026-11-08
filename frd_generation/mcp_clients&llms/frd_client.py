@@ -20,6 +20,24 @@ from frd_generation import generate_frd_package
 
 
 ISSUE_KEY_PATTERN = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
+GENERATED_OUTPUT_LABELS = {
+    "frd-document",
+    "frd-output-document",
+    "frd-output-story",
+    "arch-output-document",
+    "arch-output-component",
+    "erd-output-document",
+    "erd-output-entity",
+}
+
+
+def _is_generated_output(issue: dict[str, Any]) -> bool:
+    labels = [str(label).casefold() for label in issue.get("labels", [])]
+    return any(
+        label in GENERATED_OUTPUT_LABELS
+        or label.startswith(("frd-story-", "arch-comp-", "erd-entity-"))
+        for label in labels
+    )
 
 
 def _tool_text(result: Any) -> str:
@@ -89,6 +107,10 @@ async def collect_jira_context(issue_key: str) -> dict[str, Any]:
             ))
             if not isinstance(related, list):
                 raise RuntimeError("Jira returned an unexpected related-issue search response.")
+            related = [
+                item for item in related
+                if isinstance(item, dict) and not _is_generated_output(item)
+            ]
 
     return {
         "business_vision_epic": epic,
@@ -149,18 +171,7 @@ async def run(
         key = str(item.get("key") or "").strip()
         if not key or key in seen_input_issue_keys:
             continue
-        labels = [str(label).casefold() for label in item.get("labels", [])]
-        if any(
-            label in {
-                "frd-document",
-                "frd-output-document",
-                "frd-output-story",
-                "arch-output-document",
-                "arch-output-component",
-            }
-            or label.startswith(("frd-story-", "arch-comp-"))
-            for label in labels
-        ):
+        if _is_generated_output(item):
             continue
         seen_input_issue_keys.add(key)
         input_issue_keys.append(key)

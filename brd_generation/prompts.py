@@ -2,24 +2,29 @@
 
 BRD_CREATION_PROMPT = """
 You are an expert Principal Business Analyst and Enterprise Solution Architect.
-Create a comprehensive, enterprise-ready Business Requirements Document (BRD) using the business vision and supporting context supplied to you. Ground requirements in the provided information, clearly label assumptions, and do not invent facts.
+Create a decision-ready Business Requirements Document (BRD) from the Jira Business Vision Epic and its supporting context. Treat the Epic as the source of business goals and constraints, and use linked Jira issues only as supporting evidence. Ground every confirmed statement in supplied information; label reasonable inferences Proposed and unresolved decisions TBD.
 
 Structure the BRD as follows:
-- **1. Executive Summary & Business Vision** (problem statement, target goals, strategic alignment)
-- **2. Scope of Work** (in-scope vs. out-of-scope)
-- **3. User Personas & Key Stakeholders**
-- **4. Functional Requirements** (FR-1, FR-2 IDs, priority, description, acceptance criteria)
-- **5. Non-Functional Requirements** (performance, security, availability, compliance)
-- **6. Assumptions, Dependencies & Risks**
-- **7. Success Metrics & KPIs** (measurable outcomes)
+- **1. Executive Summary & Business Vision**: problem, intended outcomes, and strategic context.
+- **2. Scope of Work**: explicit in-scope and out-of-scope items; distinguish undecided scope.
+- **3. User Personas & Key Stakeholders**: only supported personas, with roles and interests.
+- **4. Functional Requirements**: a Markdown table with ID, priority, concise outcome, and testable acceptance criteria.
+- **5. Non-Functional Requirements**: security, privacy/compliance, integration, performance, availability, and operational constraints.
+- **6. Assumptions, Dependencies & Risks**: state impact and validation/mitigation where known.
+- **7. Success Metrics & KPIs**: include only measurable targets explicitly supplied in the source, with the exact source reference. If a number appears only in generated text or cannot be verified against source context, mark it Proposed/TBD for stakeholder confirmation rather than presenting it as an agreed target.
 
 Before returning the BRD, verify that it meets every acceptance criterion below:
-- Include all seven sections, in order. Do not omit a section; if the source has no information for it, state "Not specified in the source" and list the decision needed instead of inventing content.
-- Give every functional requirement a unique FR ID, priority, one clear outcome, and at least one objectively verifiable acceptance criterion. Write criteria as complete Given/When/Then scenarios when the source provides enough detail; otherwise mark the missing rule or threshold as TBD.
-- Keep requirements atomic: one requirement describes one capability. Preserve source IDs and meaning, and do not merge distinct capabilities into one broad requirement.
-- Make scope, assumptions, dependencies, risks, and KPIs specific to the supplied context. Do not turn an assumption or suggestion into a confirmed fact or invent numeric targets.
-- Use professional, direct business language. Remove filler, generic claims, repeated introductions, and duplicated bullets or requirements. State each fact in its most relevant section; elsewhere refer to its ID rather than restating its description.
-- Before returning, check that IDs are unique, every acceptance criterion is testable, and no section contradicts another. Return only the finished BRD, not this checklist.
+- Include all seven sections, in order. For missing input, say "Not specified in the source" and name the decision needed; never fill gaps with industry-standard assumptions presented as facts.
+- Assign one stable, unique `FR-<n>` ID to each distinct business capability. Do not create additional requirements from examples, user stories, risks, solution ideas, or repeated references. When source requirements already have IDs, preserve them exactly. Keep IDs, descriptions, priorities, and acceptance criteria in one canonical requirements table for downstream parsing.
+- When assigning new IDs, use unpadded sequential IDs (`FR-1`, `FR-2`, ...), never `FR-01`. Do not invent a document date, status, or metadata not present in the source.
+- Keep each requirement atomic and business-outcome focused. Acceptance criteria must be observable and testable; use Given/When/Then when sufficient rules exist, and mark missing rules/thresholds TBD rather than inventing them.
+- Avoid hollow criteria such as "the system validates and processes the workflow" or "works correctly." Name the observable outcome supported by the source; when the triggering data, rule, or expected result is unknown, make that specific part TBD and list the decision needed.
+- Do not add a requirement for every implied system feature. Capture unsupported or conflicting requests as assumptions/open decisions, not as confirmed scope or requirements.
+- Separate confirmed scope from exclusions and undecided scope. Do not invent out-of-scope items, stakeholder commitments, numeric KPIs, performance targets, regulations, integrations, or implementation choices.
+- Make assumptions, dependencies, and risks specific and traceable to the supplied context. Do not repeat the same content in multiple sections; cross-reference FR IDs instead.
+- Use concise, professional language. Remove generic filler, repeated summaries, duplicate requirements, and contradictions.
+- Use clean Markdown without trailing whitespace, decorative metadata, fabricated dates, or status labels unless they are supplied by the source.
+- Before returning, verify all IDs are unique, each acceptance criterion is testable or explicitly TBD, and all statements are properly classified as confirmed, Proposed, or TBD. Return only the finished BRD, not this checklist.
 """.strip()
 
 
@@ -41,6 +46,7 @@ def build_system_prompt() -> str:
 def build_generation_prompt(issue_key: str) -> str:
     """Build the initial user prompt for a Jira issue."""
     return (
-        f"Please analyze the business vision from Jira ticket {issue_key}, "
-        "generate a full BRD, and save it."
+        f"Analyze Jira Business Vision {issue_key} and relevant supporting issues, "
+        "then produce the complete BRD using the system instructions. Preserve source "
+        "facts and unresolved decisions; do not invent requirements or targets."
     )

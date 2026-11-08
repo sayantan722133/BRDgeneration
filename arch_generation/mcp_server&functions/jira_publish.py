@@ -1,59 +1,20 @@
 """Publish an Architecture document and its component sub-tasks under a Jira Epic."""
 
 import json
-import re
 
 import httpx
 
-from customfun import JIRA_BASE_URL, get_attachment_headers, get_jira_headers
-
-_ISSUE_KEY = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
-_COMPONENT_ID = re.compile(r"^COMP-[A-Z0-9]+-\d+$", re.IGNORECASE)
-
-
-def _paragraph(text: str) -> dict[str, object]:
-    return {
-        "type": "paragraph",
-        "content": [{"type": "text", "text": text}],
-    }
-
-
-def _label(value: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_-]+", "-", value.casefold()).strip("-")[:255]
-
-
-def _component_output_label(component: dict[str, object]) -> str:
-    requirement_ids = sorted(str(item).casefold() for item in component.get("source_requirement_ids", []))
-    story_ids = sorted(str(item).casefold() for item in component.get("source_story_ids", []))
-    identity = "-".join([str(component["module_id"]).casefold(), *requirement_ids, *story_ids])
-    return _label(f"arch-comp-{identity}")
-
-
-def _component_description(comp: dict[str, object]) -> list[dict[str, object]]:
-    fr_keys = ", ".join(comp.get("source_requirement_ids", []))
-    story_keys = ", ".join(comp.get("source_story_ids", []))
-    tech = ", ".join(comp.get("tech_stack", []))
-    entities = ", ".join(comp.get("data_entities_handled", []))
-    deps = ", ".join(comp.get("dependencies", [])) or "None"
-
-    return [
-        _paragraph(f"Component ID: {comp['component_id']}"),
-        _paragraph(f"Type: {comp['component_type']}"),
-        _paragraph(f"Module: {comp['module_id']}"),
-        _paragraph(f"Tech Stack: {tech}"),
-        _paragraph(f"Dependencies: {deps}"),
-        _paragraph(f"Managed Data Entities (ERD Precursors): {entities}"),
-        _paragraph(f"Traceable FR IDs: {fr_keys}"),
-        _paragraph(f"Traceable User Stories: {story_keys}"),
-        _paragraph("Core Responsibilities:"),
-        {
-            "type": "bulletList",
-            "content": [
-                {"type": "listItem", "content": [_paragraph(str(item))]}
-                for item in comp.get("responsibilities", [])
-            ],
-        },
-    ]
+from customfun import (
+    JIRA_BASE_URL,
+    COMPONENT_ID_PATTERN,
+    ISSUE_KEY_PATTERN,
+    component_description,
+    component_output_label,
+    get_attachment_headers,
+    get_jira_headers,
+    normalize_label,
+    paragraph,
+)
 
 
 async def publish_arch_to_jira(
@@ -65,7 +26,7 @@ async def publish_arch_to_jira(
 ) -> str:
     """Create an Architecture Task and discrete component sub-tasks beneath it."""
     epic_key = epic_issue_key.strip().upper()
-    if not _ISSUE_KEY.fullmatch(epic_key):
+    if not ISSUE_KEY_PATTERN.fullmatch(epic_key):
         raise ValueError("epic_issue_key must be a valid Jira issue key.")
     if not arch_markdown.strip():
         raise ValueError("arch_markdown must not be empty.")
@@ -168,7 +129,7 @@ async def publish_arch_to_jira(
                     "description": {
                         "type": "doc",
                         "version": 1,
-                        "content": [_paragraph(line) for line in arch_description_lines],
+                        "content": [paragraph(line) for line in arch_description_lines],
                     },
                     "labels": ["arch-output-document"],
                 }},
@@ -186,10 +147,10 @@ async def publish_arch_to_jira(
         duplicate_component_keys: list[str] = []
         for comp in components_payload:
             comp_id = str(comp.get("component_id", "")).strip().upper()
-            if not _COMPONENT_ID.fullmatch(comp_id):
+            if not COMPONENT_ID_PATTERN.fullmatch(comp_id):
                 continue
 
-            output_label = _component_output_label(comp)
+            output_label = component_output_label(comp)
             existing_response = await client.get(
                 f"{JIRA_BASE_URL}/rest/api/3/search/jql",
                 params={
@@ -211,7 +172,7 @@ async def publish_arch_to_jira(
             legacy_parent = False
             comp_name = str(comp.get("name", "")).strip()
             if not existing_comp_task:
-                module_label = _label(str(comp.get("module_id", "Core")))
+                module_label = normalize_label(str(comp.get("module_id", "Core")))
                 legacy_response = await client.get(
                     f"{JIRA_BASE_URL}/rest/api/3/search/jql",
                     params={
@@ -233,8 +194,20 @@ async def publish_arch_to_jira(
                     }, indent=2)
                 matching_legacy = [
                     issue for issue in legacy_response.json().get("issues", [])
-                    if str(issue.get("fields", {}).get("summary", "")).split("] Component: ", 1)[-1].strip().casefold()
-                    == comp_name.casefold()
+                    if "superseded-output" not in {
+                        str(label).casefold()
+                        for label in issue.get("fields", {}).get("labels", [])
+                    }
+                    and (
+                        str(issue.get("fields", {}).get("summary", ""))
+                        .upper()
+                        .startswith(f"[{comp_id}]")
+                        or str(issue.get("fields", {}).get("summary", ""))
+                        .split("] Component: ", 1)[-1]
+                        .strip()
+                        .casefold()
+                        == comp_name.casefold()
+                    )
                 ]
                 matching_legacy.sort(key=lambda issue: issue.get("key", ""))
                 existing_comp_task = matching_legacy
@@ -253,9 +226,9 @@ async def publish_arch_to_jira(
                 "description": {
                     "type": "doc",
                     "version": 1,
-                    "content": _component_description(comp),
+                    "content": component_description(comp),
                 },
-                "labels": ["arch-output-component", output_label, _label(module_id)],
+                "labels": ["arch-output-component", output_label, normalize_label(module_id)],
             }
 
             if existing_comp_task:
@@ -340,7 +313,7 @@ async def publish_arch_to_jira(
                 "description": {
                     "type": "doc",
                     "version": 1,
-                    "content": [_paragraph(line) for line in final_description_lines],
+                    "content": [paragraph(line) for line in final_description_lines],
                 },
             }},
         )

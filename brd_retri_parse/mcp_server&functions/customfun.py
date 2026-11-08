@@ -2,6 +2,7 @@
 
 import base64
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -51,6 +52,20 @@ def adf_to_text(node: dict | list | str | None) -> str:
     chunks = [node.get("text", "")] if node.get("type") == "text" else []
     chunks.extend(adf_to_text(child) for child in node.get("content", []))
     return " ".join(part for part in chunks if part)
+
+
+def adf_paragraph(text: str) -> dict[str, object]:
+    """Build a Jira Atlassian Document Format paragraph."""
+    return {
+        "type": "paragraph",
+        "content": [{"type": "text", "text": text}],
+    }
+
+
+def jira_label(value: str) -> str:
+    """Normalize a string into a valid Jira label."""
+    label = re.sub(r"[^a-zA-Z0-9_-]+", "-", value.casefold()).strip("-")
+    return label[:255]
 
 
 def register_tools() -> None:

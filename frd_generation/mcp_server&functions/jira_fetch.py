@@ -1,25 +1,21 @@
 """Read Jira issues, linked tickets, and their BRD Markdown attachment."""
 
 import json
-import re
 
 import httpx
 
-from customfun import JIRA_BASE_URL, adf_to_text, get_attachment_headers, get_jira_headers
-
-_ISSUE_KEY = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
-
-
-def _validate_issue_key(issue_key: str) -> str:
-    key = issue_key.strip().upper()
-    if not _ISSUE_KEY.fullmatch(key):
-        raise ValueError("issue_key must be a valid Jira key, for example KAN-4.")
-    return key
+from customfun import (
+    JIRA_BASE_URL,
+    adf_to_text,
+    get_attachment_headers,
+    get_jira_headers,
+    validate_issue_key,
+)
 
 
 async def get_jira_issue(issue_key: str) -> str:
     """Fetch issue details, description, comments, and parent hierarchy."""
-    key = _validate_issue_key(issue_key)
+    key = validate_issue_key(issue_key)
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(
             f"{JIRA_BASE_URL}/rest/api/3/issue/{key}",
@@ -91,7 +87,7 @@ async def search_jira_issues(jql_query: str, max_results: int = 50) -> str:
 
 async def get_brd_markdown(issue_key: str) -> str:
     """Download the BRD_<EPIC_KEY>.md attachment from a Business Vision Epic."""
-    key = _validate_issue_key(issue_key)
+    key = validate_issue_key(issue_key)
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
         issue_response = await client.get(
             f"{JIRA_BASE_URL}/rest/api/3/issue/{key}",

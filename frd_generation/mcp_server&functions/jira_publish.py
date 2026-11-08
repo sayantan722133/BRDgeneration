@@ -1,121 +1,19 @@
 """Publish an FRD document and its industry-standard story sub-tasks."""
 
 import json
-import re
 
 import httpx
 
-from customfun import JIRA_BASE_URL, get_attachment_headers, get_jira_headers
-
-_ISSUE_KEY = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
-_REQUIREMENT_ID = re.compile(r"^FR-\d+$", re.IGNORECASE)
-_STORY_ID = re.compile(r"^US-FR-\d+$", re.IGNORECASE)
-
-
-def _paragraph(text: str) -> dict[str, object]:
-    return {
-        "type": "paragraph",
-        "content": [{"type": "text", "text": text}],
-    }
-
-
-def _label(value: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_-]+", "-", value.casefold()).strip("-")[:255]
-
-
-def _story_description(story: dict[str, object]) -> list[dict[str, object]]:
-    source_keys = ", ".join(story["source_issue_keys"])
-    content: list[dict[str, object]] = [
-        _paragraph(f"Story ID: {story['story_id']}"),
-        _paragraph(f"Source requirement: {story['source_requirement_id']}"),
-        _paragraph(f"Module: {story['module_id']}"),
-        _paragraph(f"BRD input issues: {source_keys}"),
-        _paragraph(f"Priority: {story['priority']}"),
-        _paragraph("User story (INVEST):"),
-        _paragraph(story["user_story"]),
-        _paragraph("Acceptance criteria (Given/When/Then scenarios):"),
-        {
-            "type": "bulletList",
-            "content": [
-                {"type": "listItem", "content": [_paragraph(criterion)]}
-                for criterion in story["acceptance_criteria"]
-            ],
-        },
-    ]
-    if story["assumptions"]:
-        content.extend([_paragraph("Assumptions:")])
-        content.extend(_paragraph(item) for item in story["assumptions"])
-    if story["open_questions"]:
-        content.append(_paragraph("Open questions:"))
-        content.extend(_paragraph(item) for item in story["open_questions"])
-    return content
-
-
-def _validate_stories(
-    stories: object,
-    input_keys: list[str],
-) -> tuple[list[dict[str, object]], list[dict[str, str]]]:
-    if not isinstance(stories, list):
-        raise ValueError("user_stories_json must contain a JSON array.")
-
-    valid_stories: list[dict[str, object]] = []
-    errors: list[dict[str, str]] = []
-    seen_requirements: set[str] = set()
-    for story in stories:
-        if not isinstance(story, dict):
-            errors.append({"error": "Story entry must be an object."})
-            continue
-
-        requirement_id = str(story.get("source_requirement_id", "")).strip().upper()
-        story_id = str(story.get("story_id", "")).strip().upper()
-        source_keys = [
-            str(key).strip().upper()
-            for key in story.get("source_issue_keys", [])
-            if isinstance(key, str) and _ISSUE_KEY.fullmatch(key.strip().upper())
-        ]
-        statement = str(story.get("user_story", "")).strip()
-        normalized_statement = statement.casefold()
-        criteria = story.get("acceptance_criteria")
-        title = str(story.get("title", "")).strip()
-        valid = (
-            bool(_REQUIREMENT_ID.fullmatch(requirement_id))
-            and bool(_STORY_ID.fullmatch(story_id))
-            and story_id == f"US-{requirement_id}"
-            and requirement_id not in seen_requirements
-            and bool(source_keys)
-            and all(key in input_keys for key in source_keys)
-            and bool(title)
-            and normalized_statement.startswith(("as a ", "as an "))
-            and ", i want " in normalized_statement
-            and ", so that " in normalized_statement
-            and isinstance(criteria, list)
-            and 3 <= len(criteria) <= 7
-            and all(
-                all(term in str(criterion).casefold() for term in ("given", "when", "then"))
-                for criterion in criteria
-            )
-        )
-        if not valid:
-            errors.append({
-                "requirement_id": requirement_id,
-                "error": "Story failed FRD story validation or references issues outside the BRD input set.",
-            })
-            continue
-
-        seen_requirements.add(requirement_id)
-        valid_stories.append({
-            "story_id": story_id,
-            "source_requirement_id": requirement_id,
-            "source_issue_keys": source_keys,
-            "module_id": str(story.get("module_id") or "Uncategorized"),
-            "title": title,
-            "user_story": statement,
-            "priority": str(story.get("priority") or "Unspecified"),
-            "acceptance_criteria": [str(item) for item in criteria],
-            "assumptions": [str(item) for item in story.get("assumptions", [])],
-            "open_questions": [str(item) for item in story.get("open_questions", [])],
-        })
-    return valid_stories, errors
+from customfun import (
+    JIRA_BASE_URL,
+    ISSUE_KEY_PATTERN,
+    get_attachment_headers,
+    get_jira_headers,
+    normalize_label,
+    paragraph,
+    story_description,
+    validate_stories,
+)
 
 
 async def publish_frd_to_jira(
@@ -126,7 +24,7 @@ async def publish_frd_to_jira(
 ) -> str:
     """Create or update an FRD Task and its story sub-tasks."""
     epic_key = epic_issue_key.strip().upper()
-    if not _ISSUE_KEY.fullmatch(epic_key):
+    if not ISSUE_KEY_PATTERN.fullmatch(epic_key):
         raise ValueError("epic_issue_key must be a valid Jira issue key.")
     if not frd_markdown.strip():
         raise ValueError("frd_markdown must not be empty.")
@@ -138,9 +36,9 @@ async def publish_frd_to_jira(
     input_keys = list(dict.fromkeys(
         key.strip().upper()
         for key in input_issue_keys
-        if isinstance(key, str) and _ISSUE_KEY.fullmatch(key.strip().upper())
+        if isinstance(key, str) and ISSUE_KEY_PATTERN.fullmatch(key.strip().upper())
     ))
-    stories, story_errors = _validate_stories(stories_payload, input_keys)
+    stories, story_errors = validate_stories(stories_payload, input_keys)
     attachment_name = f"FRD_{epic_key}.md"
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -233,7 +131,7 @@ async def publish_frd_to_jira(
                     "description": {
                         "type": "doc",
                         "version": 1,
-                        "content": [_paragraph(line) for line in frd_description_lines],
+                        "content": [paragraph(line) for line in frd_description_lines],
                     },
                     "labels": ["frd-output-document"],
                 }},
@@ -250,7 +148,8 @@ async def publish_frd_to_jira(
         duplicate_story_keys: list[str] = []
         for story in stories:
             requirement_id = str(story["source_requirement_id"])
-            output_label = _label(f"frd-story-{requirement_id}")
+            requirement_number = int(requirement_id.split("-", maxsplit=1)[1])
+            output_label = normalize_label(f"frd-story-FR-{requirement_number}")
             existing_response = await client.get(
                 f"{JIRA_BASE_URL}/rest/api/3/search/jql",
                 params={
@@ -303,9 +202,9 @@ async def publish_frd_to_jira(
                 "description": {
                     "type": "doc",
                     "version": 1,
-                    "content": _story_description(story),
+                    "content": story_description(story),
                 },
-                "labels": ["frd-output-story", output_label, _label(module_id)],
+                "labels": ["frd-output-story", output_label, normalize_label(module_id)],
             }
             if existing_story:
                 story_issue_key = existing_story[0].get("key")
@@ -410,7 +309,7 @@ async def publish_frd_to_jira(
                 "description": {
                     "type": "doc",
                     "version": 1,
-                    "content": [_paragraph(line) for line in final_description_lines],
+                    "content": [paragraph(line) for line in final_description_lines],
                 },
             }},
         )

@@ -15,6 +15,7 @@ The generated BRD is saved as a Markdown file in `generated_brds/` and attached 
 - Generate a separate FRD from the Epic, BRD attachment, and source requirement tickets.
 - Publish the FRD Markdown as a dedicated FRD Task under the Epic.
 - Create or update FRD user-story subtasks beneath the FRD document Task.
+- Generate a relational database schema and Mermaid ERD from architecture component data entities and the FRD.
 
 ## Requirements
 
@@ -93,6 +94,18 @@ To run architecture generation only, from the repository root:
 ```bash
 python "arch_generation/mcp_clients&llms/arch_client.py" KAN-4
 ```
+
+To run ERD generation from the Epic, its architecture component tasks, and FRD:
+
+```bash
+python "ERD_generation/mcp_clients&llms/erd_client.py" KAN-4
+```
+
+Use `--provider local` for the configured OpenAI-compatible model, `--model NAME`
+to override the model, and `--output PATH` to choose the Markdown output. The
+default output is `generated_erd/ERD_KAN-4.md`. The workflow publishes an
+`[ERD] Database Schema & ERD` Task under the Epic, attaches the Markdown, and
+creates or updates one entity subtask per generated table.
 
 **Google Gemini:**
 

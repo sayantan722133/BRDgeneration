@@ -1,5 +1,6 @@
 import base64
 import os
+import re
 import sys
 
 from dotenv import load_dotenv
@@ -42,6 +43,22 @@ def normalize_brd_filename(file_name: str) -> str:
     if not safe_name.endswith(".md"):
         safe_name += ".md"
     return safe_name
+
+
+def clean_brd_markdown(markdown_content: str) -> str:
+    """Remove unsupported generated metadata and normalize Markdown whitespace."""
+    lines = markdown_content.splitlines()
+    cleaned = []
+    document_started = False
+    for line in lines:
+        if re.match(r"^#{1,6}\s+", line.strip()):
+            document_started = True
+        if not document_started and re.fullmatch(
+            r"\s*\*\*(?:Status|Date):\*\*.*", line, flags=re.IGNORECASE
+        ):
+            continue
+        cleaned.append(line.rstrip())
+    return "\n".join(cleaned).strip() + "\n"
 
 
 def save_brd_content(file_name: str, markdown_content: str) -> str:

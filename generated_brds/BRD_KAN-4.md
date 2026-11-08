@@ -1,7 +1,11 @@
 # Business Requirements Document: Simple Pension Scheme Setup Platform
 
+**Issue Key:** KAN-4
+
+---
+
 ## 1. Executive Summary & Business Vision
-The Simple Pension Scheme Setup Platform is a digital initiative designed to modernize pension scheme administration. The primary objective is to eliminate manual paperwork in employer onboarding, significantly reduce setup time, and provide a transparent, self-service experience for members. The platform will automate core administrative tasks, including contributions, investment tracking, and benefit payments, while ensuring strict adherence to regulatory compliance and audit requirements.
+The Simple Pension Scheme Setup Platform aims to digitize the end-to-end pension scheme administration lifecycle. The primary business objective is to eliminate manual paperwork associated with employer onboarding, thereby reducing setup time. The platform will provide a self-service portal for members to track their contributions and investment performance, while simultaneously automating regulatory compliance and audit trail generation.
 
 ## 2. Scope of Work
 ### In-Scope
@@ -9,38 +13,46 @@ The Simple Pension Scheme Setup Platform is a digital initiative designed to mod
 *   Contribution management system (salary deductions and automated billing).
 *   Investment allocation tracking and fund switching interface.
 *   Automated benefit payment calculations and disbursement.
-*   Audit trail generation for regulatory compliance.
 
 ### Out-of-Scope
-*   Not specified in the source. (Decision needed: Define scope for legacy data migration and multi-currency support).
+*   Not specified in the source.
+
+### Undecided Scope
+*   Specific third-party banking API providers for direct debit contributions (TBD).
 
 ## 3. User Personas & Key Stakeholders
-*   **Scheme Administrators (Internal Ops):** Manage platform operations and oversee scheme health.
-*   **Employers / HR Managers:** Manage onboarding and employee contributions.
-*   **Individual Scheme Members (Employees):** Track contributions and investment performance.
-*   **Regulators / Auditors:** Review compliance and audit trails.
+*   **Scheme Administrators (Internal Ops):** Responsible for managing platform operations and oversight.
+*   **Employers / HR Managers:** Responsible for onboarding their organization and managing employee contributions.
+*   **Individual Scheme Members (Employees):** Users who track their contributions and investment performance.
+*   **Regulators / Auditors:** Entities requiring automated compliance and audit trails.
 
 ## 4. Functional Requirements
 
-| ID | Priority | Description | Acceptance Criteria |
+| ID | Priority | Outcome | Acceptance Criteria |
 | :--- | :--- | :--- | :--- |
-| **FR-1** | High | Digital KYC/Onboarding | Given a new employer/member, when they submit required documentation, then the system validates data and triggers automated approval workflows. |
-| **FR-2** | High | Contribution Management | Given a payroll cycle, when salary deductions are processed, then the system automatically generates billing and reconciles contributions. |
-| **FR-3** | Medium | Investment Tracking | Given a member account, when they access the portal, then they can view current fund allocation and initiate fund switches. |
-| **FR-4** | High | Benefit Payments | Given a benefit eligibility event, when triggered, then the system calculates the payment amount and initiates disbursement. |
-| **FR-5** | High | Audit Trail Generation | Given any system transaction, when completed, then the system logs the event for regulatory review. |
+| FR-01 | High | Digital KYC/Onboarding | Given an employer/member, When they submit required data, Then the system validates and processes the onboarding workflow. |
+| FR-02 | High | Contribution Management | Given salary deduction data, When processed, Then the system generates automated billing and updates contribution records. |
+| FR-03 | Medium | Investment Tracking | Given a member account, When accessing the portal, Then the system displays current investment allocation and provides a fund switching interface. |
+| FR-04 | High | Benefit Payments | Given a benefit eligibility event, When triggered, Then the system performs automated calculations and initiates disbursement. |
+| FR-05 | High | Compliance/Audit | Given any system transaction, When completed, Then the system generates an immutable audit trail entry. |
 
 ## 5. Non-Functional Requirements
-*   **Security & Compliance:** Must comply with local financial authority privacy and security regulations.
+*   **Security & Privacy:** Must comply with local financial authority privacy and security regulations.
 *   **Integration:** Must integrate with third-party banking APIs for direct debit contributions.
-*   **Performance:** TBD (Thresholds for system response time and concurrent user capacity).
-*   **Availability:** TBD (Uptime requirements).
+*   **Performance:** Not specified in the source (TBD).
+*   **Availability:** Not specified in the source (TBD).
+*   **Operational Constraints:** Must support automated audit trail generation.
 
 ## 6. Assumptions, Dependencies & Risks
-*   **Assumption:** Third-party banking APIs are available and support the required direct debit functionality.
-*   **Dependency:** Integration with external banking systems is required for contribution processing.
-*   **Risk:** Regulatory changes may require rapid updates to the automated calculation logic.
+*   **Assumption:** Third-party banking APIs are available and compatible with the platform's architecture.
+*   **Dependency:** Integration with external banking systems is required for contribution processing (FR-02).
+*   **Risk:** Regulatory changes may impact the automated compliance logic (FR-05).
 
 ## 7. Success Metrics & KPIs
-*   **Onboarding Efficiency:** 80% reduction in onboarding processing time.
-*   **Compliance:** Zero compliance audit violations on benefit calculations.
+*   **Onboarding Efficiency:** 80% reduction in onboarding processing time (Source: KAN-4).
+*   **Compliance:** Zero compliance audit violations on benefit calculations (Source: KAN-4).
+*   **Other Metrics:** Not specified in the source (TBD).
+
+---
+
+**Note:** This document is based on the Business Vision defined in KAN-4. Items marked TBD require further stakeholder input to finalize.

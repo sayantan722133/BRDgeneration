@@ -1,23 +1,10 @@
 """Create or update one Jira execution ticket for every parsed BRD feature."""
 
 import json
-import re
 
 import httpx
 
-from customfun import JIRA_BASE_URL, get_jira_headers
-
-
-def _adf_paragraph(text: str) -> dict[str, object]:
-    return {
-        "type": "paragraph",
-        "content": [{"type": "text", "text": text}],
-    }
-
-
-def _jira_label(value: str) -> str:
-    label = re.sub(r"[^a-zA-Z0-9_-]+", "-", value.casefold()).strip("-")
-    return label[:255]
+from customfun import JIRA_BASE_URL, adf_paragraph, get_jira_headers, jira_label
 
 
 async def create_brd_requirement_issues(
@@ -87,7 +74,7 @@ async def create_brd_requirement_issues(
                 errors.append({"module_id": module_id, "error": "Invalid module data."})
                 continue
 
-            module_label = _jira_label(module_id)
+            module_label = jira_label(module_id)
             for feature in features:
                 requirement_id = str(feature.get("requirement_id", "")).strip().upper()
                 feature_name = str(feature.get("name", "")).strip()
@@ -95,14 +82,15 @@ async def create_brd_requirement_issues(
                     errors.append({"module_id": module_id, "error": "Feature is missing its ID or name."})
                     continue
 
-                requirement_label = _jira_label(f"brd-{requirement_id}")
+                requirement_number = int(requirement_id.split("-", maxsplit=1)[1])
+                requirement_label = jira_label(f"brd-FR-{requirement_number}")
                 acceptance_criteria = feature.get("acceptance_criteria", [])
                 description_content = [
-                    _adf_paragraph(f"Business Vision: {epic_key}"),
-                    _adf_paragraph(f"Module: {module_name} ({module_id})"),
-                    _adf_paragraph(f"Requirement: {requirement_id}"),
-                    _adf_paragraph(f"Priority: {feature.get('priority', 'Unspecified')}"),
-                    _adf_paragraph("Acceptance criteria:"),
+                    adf_paragraph(f"Business Vision: {epic_key}"),
+                    adf_paragraph(f"Module: {module_name} ({module_id})"),
+                    adf_paragraph(f"Requirement: {requirement_id}"),
+                    adf_paragraph(f"Priority: {feature.get('priority', 'Unspecified')}"),
+                    adf_paragraph("Acceptance criteria:"),
                 ]
                 if acceptance_criteria:
                     description_content.append({
@@ -110,7 +98,7 @@ async def create_brd_requirement_issues(
                         "content": [
                             {
                                 "type": "listItem",
-                                "content": [_adf_paragraph(str(criterion))],
+                                "content": [adf_paragraph(str(criterion))],
                             }
                             for criterion in acceptance_criteria
                         ],

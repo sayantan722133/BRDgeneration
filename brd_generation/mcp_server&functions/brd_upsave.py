@@ -4,6 +4,7 @@ import httpx
 
 from customfun import (
     JIRA_BASE_URL,
+    clean_brd_markdown,
     extract_adf_text,
     get_jira_auth_headers,
     get_jira_headers,
@@ -14,7 +15,7 @@ from customfun import (
 
 async def save_brd_file(file_name: str, markdown_content: str) -> str:
     """Save the generated BRD as a local Markdown file."""
-    file_path = save_brd_content(file_name, markdown_content)
+    file_path = save_brd_content(file_name, clean_brd_markdown(markdown_content))
     return f"BRD successfully written to: {file_path}"
 
 
@@ -30,6 +31,7 @@ async def publish_brd_to_jira(
         raise ValueError("issue_key must not be empty.")
 
     safe_name = normalize_brd_filename(file_name)
+    markdown_content = clean_brd_markdown(markdown_content)
     local_path = save_brd_content(safe_name, markdown_content)
 
     async with httpx.AsyncClient(timeout=30.0) as client:

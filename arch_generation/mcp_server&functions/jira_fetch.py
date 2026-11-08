@@ -1,39 +1,22 @@
 """Read Jira issues, child user stories, and FRD Markdown attachments."""
 
 import json
-import re
 
 import httpx
 
-from customfun import JIRA_BASE_URL, adf_to_text, get_attachment_headers, get_jira_headers
-
-_ISSUE_KEY = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
-
-
-def _validate_issue_key(issue_key: str) -> str:
-    key = issue_key.strip().upper()
-    if not _ISSUE_KEY.fullmatch(key):
-        raise ValueError("issue_key must be a valid Jira key, for example KAN-4.")
-    return key
-
-
-def _select_frd_attachment(attachments: list[dict], epic_key: str) -> dict | None:
-    markdown_attachments = [
-        attachment for attachment in attachments
-        if str(attachment.get("filename", "")).casefold().startswith(f"frd_{epic_key}".casefold())
-        and str(attachment.get("filename", "")).casefold().endswith(".md")
-    ]
-    stable_name = f"FRD_{epic_key}.md".casefold()
-    return next(
-        (attachment for attachment in markdown_attachments
-         if str(attachment.get("filename", "")).casefold() == stable_name),
-        max(markdown_attachments, key=lambda attachment: attachment.get("created", ""), default=None),
-    )
+from customfun import (
+    JIRA_BASE_URL,
+    adf_to_text,
+    get_attachment_headers,
+    get_jira_headers,
+    select_frd_attachment,
+    validate_issue_key,
+)
 
 
 async def get_jira_issue(issue_key: str) -> str:
     """Fetch issue details, description, comments, and parent hierarchy."""
-    key = _validate_issue_key(issue_key)
+    key = validate_issue_key(issue_key)
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(
             f"{JIRA_BASE_URL}/rest/api/3/issue/{key}",
@@ -105,7 +88,7 @@ async def search_jira_issues(jql_query: str, max_results: int = 50) -> str:
 
 async def get_frd_markdown(issue_key: str) -> str:
     """Download FRD Markdown from the Epic or its [FRD] child output task."""
-    key = _validate_issue_key(issue_key)
+    key = validate_issue_key(issue_key)
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
         issue_response = await client.get(
             f"{JIRA_BASE_URL}/rest/api/3/issue/{key}",
@@ -150,7 +133,7 @@ async def get_frd_markdown(issue_key: str) -> str:
             if tasks:
                 target_issue_summary = tasks[0].get("fields", {}).get("summary", "")
                 attachments = tasks[0].get("fields", {}).get("attachment", []) or []
-                attachment = _select_frd_attachment(attachments, epic_key)
+                attachment = select_frd_attachment(attachments, epic_key)
 
         # 2. Fallback to attachments directly on the Epic
         if not attachment:
@@ -163,7 +146,7 @@ async def get_frd_markdown(issue_key: str) -> str:
                 epic_data = epic_response.json().get("fields", {})
                 target_issue_summary = epic_data.get("summary", "")
                 attachments = epic_data.get("attachment", []) or []
-                attachment = _select_frd_attachment(attachments, epic_key)
+                attachment = select_frd_attachment(attachments, epic_key)
 
         if not attachment:
             return json.dumps({
